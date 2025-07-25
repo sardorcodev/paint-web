@@ -1,0 +1,66 @@
+.ribbon-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background-color: #333333;
+    border-bottom: 1px solid #1a1a1a;
+    gap: 10px; /* Guruhlar orasidagi masofa */
+}
+
+.tool-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    border-right: 1px solid #4a4a4a;
+}
+
+.tool-group:last-child {
+    border-right: none;
+}
+
+.tool-group-content {
+    display: flex;
+    gap: 6px; /* Tugmalar orasidagi masofa */
+    margin-bottom: 4px;
+    align-items: center;
+}
+
+.tool-group-label {
+    font-size: 11px;
+    color: #b0b0b0;
+}
+
+.tool-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  background-color: #4f4f4f;
+  border: 1px solid #666;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.tool-button:hover {
+  background-color: #6a6a6a;
+}
+
+.tool-button.active {
+  background-color: #007bff;
+  border-color: #0056b3;
+}
+
+.tool-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.thickness-label {
+    font-size: 12px;
+    margin-left: 8px;
+    min-width: 30px;
+}

@@ -1,0 +1,9 @@
+.app-header {
+  height: 40px;
+  background-color: #252525;
+  border-bottom: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-weight: bold;
+}
