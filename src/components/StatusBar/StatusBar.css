@@ -1,9 +1,16 @@
 .app-statusbar {
-  height: 24px;
-  background-color: #252525;
-  border-top: 1px solid #1a1a1a;
-  display: flex;
-  align-items: center;
-  padding: 0 20px;
-  font-size: 12px;
+    height: 24px;
+    background-color: #252525;
+    border-top: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 12px;
+    color: #a0a0a0;
+    gap: 24px; /* Bo'limlar orasidagi masofa */
+}
+
+.status-section {
+    min-width: 120px; /* Har bir bo'limning minimal kengligi */
+    text-align: left;
 }

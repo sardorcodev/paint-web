@@ -10,7 +10,10 @@ import LineTool from '../../graphics/tools/LineTool.js';
 import RectangleTool from '../../graphics/tools/RectangleTool.js';
 import CircleTool from '../../graphics/tools/CircleTool.js';
 import FillTool from '../../graphics/tools/FillTool.js';
+import ColorPickerTool from '../../graphics/tools/ColorPickerTool.js';
+import { setForegroundColor, setBackgroundColor, setActiveTool } from '../../app/slices/toolSlice';
 import { setHistoryStatus } from '../../app/slices/historySlice';
+import { setCursorPos, setCanvasSize } from '../../app/slices/uiSlice';
 
 const MainCanvas = () => {
     const containerRef = useRef(null);
@@ -20,17 +23,18 @@ const MainCanvas = () => {
     const dispatch = useDispatch();
     const toolState = useSelector((state) => state.tool);
     const { undoTrigger, redoTrigger } = useSelector((state) => state.history);
+    // 1. Yangi "saqlash" triggerini Redux'dan olamiz
+    const { saveTrigger } = useSelector((state) => state.ui);
 
     useEffect(() => {
         stateRef.current = toolState;
     }, [toolState]);
 
-    // Asosiy sozlash effekti (FAQAT BIR MARTA ISHLAYDI)
     useEffect(() => {
         const container = containerRef.current;
         if (!container || engineRef.current) return;
 
-        const renderer = new Renderer(container);
+        const renderer = new Renderer(container, dispatch, { setCanvasSize });
         renderer.addLayer('background');
         renderer.addLayer('drawing');
 
@@ -42,24 +46,44 @@ const MainCanvas = () => {
             rectangle: new RectangleTool(renderer),
             circle: new CircleTool(renderer),
             fill: new FillTool(renderer),
+            color_picker: new ColorPickerTool(renderer),
         };
         
         engineRef.current = { renderer, historyManager, tools, activeTool: null };
         
-        // Hodisalarni boshqarish
-        const handleMouseDown = (e) => engineRef.current.activeTool?.onMouseDown(e, stateRef.current);
-        const handleMouseMove = (e) => engineRef.current.activeTool?.onMouseMove(e, stateRef.current);
-        const handleMouseLeave = (e) => engineRef.current.activeTool?.onMouseLeave(e, stateRef.current);
+        const handleMouseDown = (e) => {
+            const tool = engineRef.current.activeTool;
+            if (!tool) return;
+            if (tool instanceof ColorPickerTool) {
+                const result = tool.onMouseDown(e);
+                if (result) {
+                    if (result.clickType === 'right') {
+                        e.preventDefault(); 
+                        dispatch(setBackgroundColor(result.color));
+                    } else {
+                        dispatch(setForegroundColor(result.color));
+                    }
+                    dispatch(setActiveTool('brush'));
+                }
+            } else {
+                tool.onMouseDown(e, stateRef.current);
+            }
+        };
+
+        const handleMouseMove = (e) => {
+            dispatch(setCursorPos({ x: e.offsetX, y: e.offsetY }));
+            engineRef.current.activeTool?.onMouseMove(e, stateRef.current);
+        };
+        const handleMouseLeave = (e) => {
+            dispatch(setCursorPos({ x: null, y: null }));
+            engineRef.current.activeTool?.onMouseLeave(e, stateRef.current);
+        };
         const handleMouseUp = (e) => {
             const tool = engineRef.current.activeTool;
             const history = engineRef.current.historyManager;
-
-            // Fill asbobi uchun alohida mantiq
             if (tool instanceof FillTool) {
-                // FillTool o'zining onMouseDown'ida ishni bajarib bo'ldi, endi faqat tarixga saqlaymiz
                 history.pushState();
             } else if (tool?.isDrawing) {
-                // Qolgan asboblar uchun
                 tool.onMouseUp(e, stateRef.current);
                 history.pushState();
             }
@@ -78,16 +102,14 @@ const MainCanvas = () => {
             container.removeEventListener('mouseleave', handleMouseLeave);
             engineRef.current = null;
         };
-    }, [dispatch]); // XATOLIK SABABI BO'LGAN "toolState.activeToolId" BU YERDAN OLIB TASHLANDI
+    }, [dispatch]);
 
-    // Bu effekt FAQAT aktiv asbobni almashtirish uchun ishlaydi
     useEffect(() => {
         if (engineRef.current?.tools) {
             engineRef.current.activeTool = engineRef.current.tools[toolState.activeToolId];
         }
     }, [toolState.activeToolId]);
 
-    // Undo/Redo trigger'lari
     useEffect(() => {
         if (undoTrigger > 0) engineRef.current?.historyManager.undo();
     }, [undoTrigger]);
@@ -95,6 +117,14 @@ const MainCanvas = () => {
     useEffect(() => {
         if (redoTrigger > 0) engineRef.current?.historyManager.redo();
     }, [redoTrigger]);
+
+    // 2. Saqlash triggerini kuzatuvchi yangi useEffect
+    useEffect(() => {
+        // trigger 0 dan katta bo'lgandagina ishga tushadi (dastlabki renderda ishlamaydi)
+        if (saveTrigger > 0) {
+            engineRef.current?.renderer.exportImage();
+        }
+    }, [saveTrigger]);
 
     return <main ref={containerRef} className="canvas-container"></main>;
 };

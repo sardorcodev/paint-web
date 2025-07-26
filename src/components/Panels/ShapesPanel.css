@@ -1,0 +1,51 @@
+.side-panel {
+    width: 86px; /* Panellni biroz kengroq qilamiz */
+    background-color: #333333;
+    border-left: 1px solid #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 8px 4px;
+    border-bottom: 1px solid #4a4a4a;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+.panel-header h4 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.shapes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 ustunli qilib joylashtiramiz */
+    gap: 4px;
+    padding: 7px;
+}
+
+.shape-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 36px;
+  background-color: #4f4f4f;
+  border: 1px solid #666;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 5px;
+  transition: background-color 0.1s ease;
+}
+
+.shape-button:hover {
+  background-color: #6a6a6a;
+}
+
+.shape-button.active {
+  background-color: #007bff;
+  border-color: #0056b3;
+}
