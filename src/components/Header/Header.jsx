@@ -32,7 +32,7 @@ const Header = () => {
 
     return (
         <header className="app-header" ref={menuRef}>
-            <div className="app-logo">ProPaint</div>
+            <div className="app-logo">ProPaints</div>
             <nav className="main-menu">
                 <div className="menu-item">
                     <button onClick={() => handleMenuClick('file')}>File</button>
