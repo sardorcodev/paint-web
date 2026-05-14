@@ -1,59 +1,146 @@
 import BaseTool from './BaseTool.js';
 
 export default class FillTool extends BaseTool {
+    static MAX_PROCESSED_PIXELS = 4_000_000;
+
     onMouseDown(event, toolState) {
-        // Bu asbob `isDrawing` holatini ishlatmaydi, chunki u bir lahzada ishlaydi
         this.ctx = this.renderer.getActiveContext();
-        if (!this.ctx) return;
+        if (!this.ctx) return false;
 
-        const startX = event.offsetX;
-        const startY = event.offsetY;
-        const fillColor = this._hexToRgba(toolState.foregroundColor);
+        const width = this.renderer.width;
+        const height = this.renderer.height;
+        const startX = Math.floor(event.offsetX);
+        const startY = Math.floor(event.offsetY);
 
-        const imageData = this.ctx.getImageData(0, 0, this.renderer.width, this.renderer.height);
-        const targetColor = this._getPixelColor(imageData, startX, startY);
+        if (!this._isInsideCanvas(startX, startY, width, height)) return false;
 
-        if (this._colorMatch(targetColor, fillColor)) return;
+        const replacementColor = this._hexToRgba(toolState.foregroundColor);
+        const imageData = this.ctx.getImageData(0, 0, width, height);
+        const targetPixelIndex = this._getPixelIndex(startX, startY, width);
+        const targetColor = this._getPixelColor(imageData.data, targetPixelIndex);
 
-        this._floodFill(imageData, startX, startY, targetColor, fillColor);
+        if (this._colorsMatch(targetColor, replacementColor)) return false;
+
+        const result = this._scanlineFloodFill(
+            imageData,
+            startX,
+            startY,
+            targetColor,
+            replacementColor
+        );
+
+        if (!result.changed || result.aborted) return false;
 
         this.ctx.putImageData(imageData, 0, 0);
-
-        // BU YERDAN historyManager.pushState() OLIB TASHLANDI.
-        // Bu qarorni endi MainCanvas qabul qiladi.
+        return true;
     }
 
-    // Qolgan metodlar o'zgarishsiz qoladi...
-    _floodFill(imageData, startX, startY, targetColor, fillColor) {
+    _scanlineFloodFill(imageData, startX, startY, targetColor, replacementColor) {
         const width = imageData.width;
         const height = imageData.height;
-        const pixelStack = [[startX, startY]];
+        const data = imageData.data;
+        const totalPixels = width * height;
+        const maxProcessedPixels = Math.min(totalPixels, FillTool.MAX_PROCESSED_PIXELS);
+        const visited = new Uint8Array(totalPixels);
+        const stack = [startX, startY];
+        let processedPixels = 0;
+        let changed = false;
 
-        while (pixelStack.length) {
-            const [x, y] = pixelStack.pop();
-            if (x < 0 || x >= width || y < 0 || y >= height) continue;
-            const currentColor = this._getPixelColor(imageData, x, y);
-            if (this._colorMatch(currentColor, targetColor)) {
-                this._setPixelColor(imageData, x, y, fillColor);
-                pixelStack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        while (stack.length > 0) {
+            const y = stack.pop();
+            const x = stack.pop();
+
+            if (!this._isInsideCanvas(x, y, width, height)) continue;
+
+            const seedIndex = this._getPixelIndex(x, y, width);
+            if (visited[seedIndex] || !this._pixelMatches(data, seedIndex, targetColor)) {
+                continue;
+            }
+
+            let left = x;
+            while (left > 0) {
+                const nextIndex = this._getPixelIndex(left - 1, y, width);
+                if (visited[nextIndex] || !this._pixelMatches(data, nextIndex, targetColor)) break;
+                left -= 1;
+            }
+
+            let spanUp = false;
+            let spanDown = false;
+
+            for (let currentX = left; currentX < width; currentX += 1) {
+                const pixelIndex = this._getPixelIndex(currentX, y, width);
+                if (visited[pixelIndex] || !this._pixelMatches(data, pixelIndex, targetColor)) break;
+
+                visited[pixelIndex] = 1;
+                processedPixels += 1;
+
+                if (processedPixels > maxProcessedPixels) {
+                    console.warn('Fill aborted: processed pixel safety cap reached.');
+                    return { changed: false, aborted: true };
+                }
+
+                this._setPixel(data, pixelIndex, replacementColor);
+                changed = true;
+
+                if (y > 0) {
+                    const upIndex = this._getPixelIndex(currentX, y - 1, width);
+                    const shouldQueueUp = !visited[upIndex] && this._pixelMatches(data, upIndex, targetColor);
+                    if (shouldQueueUp && !spanUp) {
+                        stack.push(currentX, y - 1);
+                        spanUp = true;
+                    } else if (!shouldQueueUp) {
+                        spanUp = false;
+                    }
+                }
+
+                if (y < height - 1) {
+                    const downIndex = this._getPixelIndex(currentX, y + 1, width);
+                    const shouldQueueDown = !visited[downIndex] && this._pixelMatches(data, downIndex, targetColor);
+                    if (shouldQueueDown && !spanDown) {
+                        stack.push(currentX, y + 1);
+                        spanDown = true;
+                    } else if (!shouldQueueDown) {
+                        spanDown = false;
+                    }
+                }
             }
         }
+
+        return { changed, aborted: false };
     }
 
-    _getPixelColor(imageData, x, y) {
-        const index = (y * imageData.width + x) * 4;
-        return [ imageData.data[index], imageData.data[index + 1], imageData.data[index + 2], imageData.data[index + 3] ];
+    _isInsideCanvas(x, y, width, height) {
+        return Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < width && y >= 0 && y < height;
     }
 
-    _setPixelColor(imageData, x, y, color) {
-        const index = (y * imageData.width + x) * 4;
-        imageData.data[index] = color[0];
-        imageData.data[index + 1] = color[1];
-        imageData.data[index + 2] = color[2];
-        imageData.data[index + 3] = color[3];
+    _getPixelIndex(x, y, width) {
+        return y * width + x;
     }
 
-    _colorMatch(c1, c2) {
+    _getPixelColor(data, pixelIndex) {
+        const dataIndex = pixelIndex * 4;
+        return [data[dataIndex], data[dataIndex + 1], data[dataIndex + 2], data[dataIndex + 3]];
+    }
+
+    _pixelMatches(data, pixelIndex, color) {
+        const dataIndex = pixelIndex * 4;
+        return (
+            data[dataIndex] === color[0] &&
+            data[dataIndex + 1] === color[1] &&
+            data[dataIndex + 2] === color[2] &&
+            data[dataIndex + 3] === color[3]
+        );
+    }
+
+    _setPixel(data, pixelIndex, color) {
+        const dataIndex = pixelIndex * 4;
+        data[dataIndex] = color[0];
+        data[dataIndex + 1] = color[1];
+        data[dataIndex + 2] = color[2];
+        data[dataIndex + 3] = color[3];
+    }
+
+    _colorsMatch(c1, c2) {
         return c1[0] === c2[0] && c1[1] === c2[1] && c1[2] === c2[2] && c1[3] === c2[3];
     }
 

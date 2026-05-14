@@ -106,8 +106,8 @@ const MainCanvas = () => {
                     dispatch(setActiveTool('brush'));
                 }
             } else {
-                tool.onMouseDown(e, stateRef.current);
-                fillPendingHistory = tool instanceof FillTool;
+                const didChange = tool.onMouseDown(e, stateRef.current);
+                fillPendingHistory = tool instanceof FillTool && didChange === true;
             }
         };
 
