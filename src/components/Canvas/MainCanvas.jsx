@@ -2,6 +2,10 @@ import React, { useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import './MainCanvas.css';
 
+import EditorController from '../../editor/core/EditorController.js';
+import { createDefaultDocument } from '../../editor/core/DocumentModel.js';
+import ToolRegistry from '../../editor/tools/ToolRegistry.js';
+import { EXPORT_IMAGE, POINTER_CANCEL, POINTER_DOWN, POINTER_MOVE, POINTER_UP, REDO, SET_ACTIVE_TOOL, UNDO } from '../../editor/commands/editorCommands.js';
 import Renderer from '../../graphics/core/Renderer.js';
 import HistoryManager from '../../graphics/history/HistoryManager.js';
 import Brush from '../../graphics/tools/Brush.js';
@@ -48,11 +52,22 @@ const MainCanvas = () => {
             fill: new FillTool(renderer),
             color_picker: new ColorPickerTool(renderer),
         };
+        const toolRegistry = new ToolRegistry(tools, stateRef.current.activeToolId);
+        const documentModel = createDefaultDocument({
+            width: renderer.width || 1,
+            height: renderer.height || 1,
+            backgroundColor: stateRef.current.backgroundColor,
+        });
+        const controller = new EditorController({
+            renderer,
+            historyManager,
+            toolRegistry,
+            documentModel,
+        });
         
-        engineRef.current = { renderer, historyManager, tools, activeTool: null };
+        engineRef.current = { controller };
 
         let activePointerId = null;
-        let fillPendingHistory = false;
 
         const isTrackedPointer = (e) =>
             activePointerId === null || e.pointerId === activePointerId;
@@ -87,27 +102,24 @@ const MainCanvas = () => {
         const handlePointerDown = (e) => {
             if (activePointerId !== null) return;
 
-            const tool = engineRef.current.activeTool;
-            if (!tool) return;
+            const controller = engineRef.current.controller;
+            if (!controller.getActiveTool()) return;
 
             activePointerId = e.pointerId;
-            fillPendingHistory = false;
             capturePointer(e);
             e.preventDefault();
 
-            if (tool instanceof ColorPickerTool) {
-                const result = tool.onMouseDown(e);
-                if (result) {
-                    if (result.clickType === 'right') {
-                        dispatch(setBackgroundColor(result.color));
-                    } else {
-                        dispatch(setForegroundColor(result.color));
-                    }
-                    dispatch(setActiveTool('brush'));
+            const { result, toolId } = controller.execute(POINTER_DOWN, {
+                event: e,
+                toolState: stateRef.current,
+            });
+            if (toolId === 'color_picker' && result) {
+                if (result.clickType === 'right') {
+                    dispatch(setBackgroundColor(result.color));
+                } else {
+                    dispatch(setForegroundColor(result.color));
                 }
-            } else {
-                const didChange = tool.onMouseDown(e, stateRef.current);
-                fillPendingHistory = tool instanceof FillTool && didChange === true;
+                dispatch(setActiveTool('brush'));
             }
         };
 
@@ -118,7 +130,10 @@ const MainCanvas = () => {
 
             if (activePointerId !== null) {
                 e.preventDefault();
-                engineRef.current.activeTool?.onMouseMove(e, stateRef.current);
+                engineRef.current.controller.execute(POINTER_MOVE, {
+                    event: e,
+                    toolState: stateRef.current,
+                });
             }
         };
 
@@ -131,37 +146,27 @@ const MainCanvas = () => {
             if (activePointerId !== e.pointerId) return;
 
             e.preventDefault();
-            const tool = engineRef.current.activeTool;
-            const history = engineRef.current.historyManager;
-
-            if (fillPendingHistory) {
-                history.pushState();
-            } else if (tool?.isDrawing) {
-                tool.onMouseUp(e, stateRef.current);
-                history.pushState();
-            }
+            engineRef.current.controller.execute(POINTER_UP, {
+                event: e,
+                toolState: stateRef.current,
+            });
 
             updateCursorFromPointer(e);
             releasePointer(e);
             activePointerId = null;
-            fillPendingHistory = false;
         };
 
         const handlePointerCancel = (e) => {
             if (activePointerId !== e.pointerId) return;
 
-            const tool = engineRef.current.activeTool;
-            const wasDrawing = Boolean(tool?.isDrawing);
-
-            tool?.onMouseLeave(e, stateRef.current);
-            if (fillPendingHistory || wasDrawing) {
-                engineRef.current.historyManager.pushState();
-            }
+            engineRef.current.controller.execute(POINTER_CANCEL, {
+                event: e,
+                toolState: stateRef.current,
+            });
 
             dispatch(setCursorPos({ x: null, y: null }));
             releasePointer(e);
             activePointerId = null;
-            fillPendingHistory = false;
         };
 
         const handleContextMenu = (e) => {
@@ -176,7 +181,7 @@ const MainCanvas = () => {
         container.addEventListener('contextmenu', handleContextMenu);
 
         return () => {
-            engineRef.current?.renderer.destroy();
+            engineRef.current?.controller.destroy();
             container.removeEventListener('pointerdown', handlePointerDown);
             container.removeEventListener('pointermove', handlePointerMove);
             container.removeEventListener('pointerup', handlePointerEnd);
@@ -188,24 +193,22 @@ const MainCanvas = () => {
     }, [dispatch]);
 
     useEffect(() => {
-        if (engineRef.current?.tools) {
-            engineRef.current.activeTool = engineRef.current.tools[toolState.activeToolId];
-        }
+        engineRef.current?.controller.execute(SET_ACTIVE_TOOL, { toolId: toolState.activeToolId });
     }, [toolState.activeToolId]);
 
     useEffect(() => {
-        if (undoTrigger > 0) engineRef.current?.historyManager.undo();
+        if (undoTrigger > 0) engineRef.current?.controller.execute(UNDO);
     }, [undoTrigger]);
 
     useEffect(() => {
-        if (redoTrigger > 0) engineRef.current?.historyManager.redo();
+        if (redoTrigger > 0) engineRef.current?.controller.execute(REDO);
     }, [redoTrigger]);
 
     // 2. Saqlash triggerini kuzatuvchi yangi useEffect
     useEffect(() => {
         // trigger 0 dan katta bo'lgandagina ishga tushadi (dastlabki renderda ishlamaydi)
         if (saveTrigger > 0) {
-            engineRef.current?.renderer.exportImage();
+            engineRef.current?.controller.execute(EXPORT_IMAGE);
         }
     }, [saveTrigger]);
 

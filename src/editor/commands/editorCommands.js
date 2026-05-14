@@ -1,0 +1,9 @@
+export const SET_ACTIVE_TOOL = 'editor/setActiveTool';
+export const POINTER_DOWN = 'editor/pointerDown';
+export const POINTER_MOVE = 'editor/pointerMove';
+export const POINTER_UP = 'editor/pointerUp';
+export const POINTER_CANCEL = 'editor/pointerCancel';
+export const PUSH_HISTORY_STATE = 'editor/pushHistoryState';
+export const UNDO = 'editor/undo';
+export const REDO = 'editor/redo';
+export const EXPORT_IMAGE = 'editor/exportImage';
