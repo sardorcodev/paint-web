@@ -35,29 +35,16 @@ const Header = () => {
             <div className="app-logo">ProPaints</div>
             <nav className="main-menu">
                 <div className="menu-item">
-                    <button onClick={() => handleMenuClick('file')}>File</button>
+                    <button
+                        aria-haspopup="true"
+                        aria-expanded={openMenu === 'file'}
+                        onClick={() => handleMenuClick('file')}
+                    >
+                        File
+                    </button>
                     {openMenu === 'file' && (
                         <div className="dropdown-menu">
                             <button className="dropdown-item" onClick={handleSave}>Save as Image...</button>
-                            <button className="dropdown-item disabled">Open...</button>
-                        </div>
-                    )}
-                </div>
-                <div className="menu-item">
-                    <button onClick={() => handleMenuClick('edit')}>Edit</button>
-                     {openMenu === 'edit' && (
-                        <div className="dropdown-menu">
-                            <button className="dropdown-item disabled">Undo</button>
-                            <button className="dropdown-item disabled">Redo</button>
-                        </div>
-                    )}
-                </div>
-                <div className="menu-item">
-                    <button onClick={() => handleMenuClick('view')}>View</button>
-                     {openMenu === 'view' && (
-                        <div className="dropdown-menu">
-                            <button className="dropdown-item disabled">Zoom In</button>
-                            <button className="dropdown-item disabled">Zoom Out</button>
                         </div>
                     )}
                 </div>

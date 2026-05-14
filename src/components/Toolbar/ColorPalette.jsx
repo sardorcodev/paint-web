@@ -37,6 +37,8 @@ const ColorPalette = () => {
                         key={color}
                         className="color-swatch"
                         style={{ backgroundColor: color }}
+                        title={`Set foreground color to ${color}. Right click for background color.`}
+                        aria-label={`Set foreground color to ${color}. Right click to set background color.`}
                         onClick={(e) => handleColorClick(color, e)}
                         onContextMenu={(e) => handleColorClick(color, e)}
                     />

@@ -16,13 +16,31 @@ const ShapesPanel = () => {
                 <h4>Shapes</h4>
             </div>
             <div className="shapes-grid">
-                <button className={getButtonClass('line')} title="Line" onClick={() => dispatch(setActiveTool('line'))}>
+                <button
+                    className={getButtonClass('line')}
+                    title="Line"
+                    aria-label="Line tool"
+                    aria-pressed={activeToolId === 'line'}
+                    onClick={() => dispatch(setActiveTool('line'))}
+                >
                     <Minus size={24} />
                 </button>
-                <button className={getButtonClass('rectangle')} title="Rectangle" onClick={() => dispatch(setActiveTool('rectangle'))}>
+                <button
+                    className={getButtonClass('rectangle')}
+                    title="Rectangle"
+                    aria-label="Rectangle tool"
+                    aria-pressed={activeToolId === 'rectangle'}
+                    onClick={() => dispatch(setActiveTool('rectangle'))}
+                >
                     <Square size={24} />
                 </button>
-                <button className={getButtonClass('circle')} title="Circle" onClick={() => dispatch(setActiveTool('circle'))}>
+                <button
+                    className={getButtonClass('circle')}
+                    title="Circle"
+                    aria-label="Circle tool"
+                    aria-pressed={activeToolId === 'circle'}
+                    onClick={() => dispatch(setActiveTool('circle'))}
+                >
                     <Circle size={24} />
                 </button>
                 {/* Kelajakda yangi shakllar shu yerga qo'shiladi */}

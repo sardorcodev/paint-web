@@ -38,6 +38,12 @@
     background-color: #4f4f4f;
 }
 
+.menu-item > button:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: -2px;
+    background-color: #4f4f4f;
+}
+
 .dropdown-menu {
     position: absolute;
     top: 100%;
@@ -69,11 +75,9 @@
     color: white;
 }
 
-.dropdown-item.disabled {
-    color: #777;
-    cursor: not-allowed;
-}
-
-.dropdown-item.disabled:hover {
-    background-color: transparent;
+.dropdown-item:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: -2px;
+    background-color: #007bff;
+    color: white;
 }

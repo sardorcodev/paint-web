@@ -18,10 +18,6 @@ const StatusBar = () => {
                 {/* Canvas o'lchamini ko'rsatamiz */}
                 <span>{`${canvasSize.width} x ${canvasSize.height}px`}</span>
             </div>
-            <div className="status-section">
-                {/* Kelajakda bu yerga Zoom funksiyasi qo'shiladi */}
-                <span>100%</span>
-            </div>
         </footer>
     );
 };

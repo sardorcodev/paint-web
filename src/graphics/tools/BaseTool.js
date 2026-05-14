@@ -9,17 +9,16 @@ export default class BaseTool {
         this.lastY = 0;
     }
 
-    // Endi barcha metodlar (event, toolState) qabul qiladi
-    onMouseDown(event, toolState) {
+    onMouseDown(event) {
         this.isDrawing = true;
         [this.lastX, this.lastY] = [event.offsetX, event.offsetY];
     }
 
-    onMouseMove(event, toolState) {
+    onMouseMove() {
         if (!this.isDrawing) return;
     }
 
-    onMouseUp(event, toolState) {
+    onMouseUp() {
         this.isDrawing = false;
     }
 

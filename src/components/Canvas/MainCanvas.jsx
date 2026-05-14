@@ -50,15 +50,55 @@ const MainCanvas = () => {
         };
         
         engineRef.current = { renderer, historyManager, tools, activeTool: null };
-        
-        const handleMouseDown = (e) => {
+
+        let activePointerId = null;
+        let fillPendingHistory = false;
+
+        const isTrackedPointer = (e) =>
+            activePointerId === null || e.pointerId === activePointerId;
+
+        const updateCursorFromPointer = (e) => {
+            const rect = container.getBoundingClientRect();
+            const isInside =
+                e.clientX >= rect.left &&
+                e.clientX <= rect.right &&
+                e.clientY >= rect.top &&
+                e.clientY <= rect.bottom;
+
+            dispatch(setCursorPos(
+                isInside
+                    ? { x: Math.round(e.offsetX), y: Math.round(e.offsetY) }
+                    : { x: null, y: null }
+            ));
+        };
+
+        const capturePointer = (e) => {
+            if (container.setPointerCapture) {
+                container.setPointerCapture(e.pointerId);
+            }
+        };
+
+        const releasePointer = (e) => {
+            if (container.releasePointerCapture && container.hasPointerCapture?.(e.pointerId)) {
+                container.releasePointerCapture(e.pointerId);
+            }
+        };
+
+        const handlePointerDown = (e) => {
+            if (activePointerId !== null) return;
+
             const tool = engineRef.current.activeTool;
             if (!tool) return;
+
+            activePointerId = e.pointerId;
+            fillPendingHistory = false;
+            capturePointer(e);
+            e.preventDefault();
+
             if (tool instanceof ColorPickerTool) {
                 const result = tool.onMouseDown(e);
                 if (result) {
                     if (result.clickType === 'right') {
-                        e.preventDefault(); 
                         dispatch(setBackgroundColor(result.color));
                     } else {
                         dispatch(setForegroundColor(result.color));
@@ -67,39 +107,82 @@ const MainCanvas = () => {
                 }
             } else {
                 tool.onMouseDown(e, stateRef.current);
+                fillPendingHistory = tool instanceof FillTool;
             }
         };
 
-        const handleMouseMove = (e) => {
-            dispatch(setCursorPos({ x: e.offsetX, y: e.offsetY }));
-            engineRef.current.activeTool?.onMouseMove(e, stateRef.current);
+        const handlePointerMove = (e) => {
+            if (!isTrackedPointer(e)) return;
+
+            updateCursorFromPointer(e);
+
+            if (activePointerId !== null) {
+                e.preventDefault();
+                engineRef.current.activeTool?.onMouseMove(e, stateRef.current);
+            }
         };
-        const handleMouseLeave = (e) => {
+
+        const handlePointerLeave = () => {
+            if (activePointerId !== null) return;
             dispatch(setCursorPos({ x: null, y: null }));
-            engineRef.current.activeTool?.onMouseLeave(e, stateRef.current);
         };
-        const handleMouseUp = (e) => {
+
+        const handlePointerEnd = (e) => {
+            if (activePointerId !== e.pointerId) return;
+
+            e.preventDefault();
             const tool = engineRef.current.activeTool;
             const history = engineRef.current.historyManager;
-            if (tool instanceof FillTool) {
+
+            if (fillPendingHistory) {
                 history.pushState();
             } else if (tool?.isDrawing) {
                 tool.onMouseUp(e, stateRef.current);
                 history.pushState();
             }
+
+            updateCursorFromPointer(e);
+            releasePointer(e);
+            activePointerId = null;
+            fillPendingHistory = false;
         };
 
-        container.addEventListener('mousedown', handleMouseDown);
-        container.addEventListener('mousemove', handleMouseMove);
-        container.addEventListener('mouseup', handleMouseUp);
-        container.addEventListener('mouseleave', handleMouseLeave);
+        const handlePointerCancel = (e) => {
+            if (activePointerId !== e.pointerId) return;
+
+            const tool = engineRef.current.activeTool;
+            const wasDrawing = Boolean(tool?.isDrawing);
+
+            tool?.onMouseLeave(e, stateRef.current);
+            if (fillPendingHistory || wasDrawing) {
+                engineRef.current.historyManager.pushState();
+            }
+
+            dispatch(setCursorPos({ x: null, y: null }));
+            releasePointer(e);
+            activePointerId = null;
+            fillPendingHistory = false;
+        };
+
+        const handleContextMenu = (e) => {
+            e.preventDefault();
+        };
+
+        container.addEventListener('pointerdown', handlePointerDown);
+        container.addEventListener('pointermove', handlePointerMove);
+        container.addEventListener('pointerup', handlePointerEnd);
+        container.addEventListener('pointercancel', handlePointerCancel);
+        container.addEventListener('pointerleave', handlePointerLeave);
+        container.addEventListener('contextmenu', handleContextMenu);
 
         return () => {
             engineRef.current?.renderer.destroy();
-            container.removeEventListener('mousedown', handleMouseDown);
-            container.removeEventListener('mousemove', handleMouseMove);
-            container.removeEventListener('mouseup', handleMouseUp);
-            container.removeEventListener('mouseleave', handleMouseLeave);
+            container.removeEventListener('pointerdown', handlePointerDown);
+            container.removeEventListener('pointermove', handlePointerMove);
+            container.removeEventListener('pointerup', handlePointerEnd);
+            container.removeEventListener('pointercancel', handlePointerCancel);
+            container.removeEventListener('pointerleave', handlePointerLeave);
+            container.removeEventListener('contextmenu', handleContextMenu);
             engineRef.current = null;
         };
     }, [dispatch]);
@@ -126,7 +209,13 @@ const MainCanvas = () => {
         }
     }, [saveTrigger]);
 
-    return <main ref={containerRef} className="canvas-container"></main>;
+    return (
+        <main
+            ref={containerRef}
+            className="canvas-container"
+            aria-label="Drawing canvas workspace"
+        ></main>
+    );
 };
 
 export default MainCanvas;

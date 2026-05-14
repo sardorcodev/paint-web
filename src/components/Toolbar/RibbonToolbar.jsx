@@ -23,6 +23,7 @@ const RibbonToolbar = () => {
                     <button
                         className='tool-button'
                         title='Undo'
+                        aria-label='Undo'
                         onClick={() => dispatch(triggerUndo())}
                         disabled={!canUndo}
                     >
@@ -31,6 +32,7 @@ const RibbonToolbar = () => {
                     <button
                         className='tool-button'
                         title='Redo'
+                        aria-label='Redo'
                         onClick={() => dispatch(triggerRedo())}
                         disabled={!canRedo}
                     >
@@ -45,6 +47,8 @@ const RibbonToolbar = () => {
                     <button
                         className={getButtonClass('brush')}
                         title='Brush'
+                        aria-label='Brush tool'
+                        aria-pressed={activeToolId === 'brush'}
                         onClick={() => dispatch(setActiveTool('brush'))}
                     >
                         <Brush size={20} />
@@ -52,13 +56,17 @@ const RibbonToolbar = () => {
                     <button
                         className={getButtonClass('eraser')}
                         title='Eraser'
+                        aria-label='Eraser tool'
+                        aria-pressed={activeToolId === 'eraser'}
                         onClick={() => dispatch(setActiveTool('eraser'))}
                     >
                         <Eraser size={20} />
                     </button>
-                     <button
+                    <button
                         className={getButtonClass('fill')}
                         title='Fill'
+                        aria-label='Fill tool'
+                        aria-pressed={activeToolId === 'fill'}
                         onClick={() => dispatch(setActiveTool('fill'))}
                     >
                         <PaintBucket size={20} />
@@ -66,6 +74,8 @@ const RibbonToolbar = () => {
                     <button
                         className={getButtonClass('color_picker')}
                         title='Color Picker'
+                        aria-label='Color picker tool'
+                        aria-pressed={activeToolId === 'color_picker'}
                         onClick={() => dispatch(setActiveTool('color_picker'))}
                     >
                         <Pipette size={20} />
@@ -81,6 +91,8 @@ const RibbonToolbar = () => {
                     <button
                         className={`tool-button ${shapeFillMode === 'outline' ? 'active' : ''}`}
                         title='Outline'
+                        aria-label='Outline fill mode'
+                        aria-pressed={shapeFillMode === 'outline'}
                         onClick={() => dispatch(setShapeFillMode('outline'))}
                     >
                         <Spline size={20} />
@@ -88,6 +100,8 @@ const RibbonToolbar = () => {
                     <button
                         className={`tool-button ${shapeFillMode === 'fill' ? 'active' : ''}`}
                         title='Fill'
+                        aria-label='Solid fill mode'
+                        aria-pressed={shapeFillMode === 'fill'}
                         onClick={() => dispatch(setShapeFillMode('fill'))}
                     >
                         <Square size={20} fill='currentColor' />
@@ -95,6 +109,8 @@ const RibbonToolbar = () => {
                     <button
                         className={`tool-button ${shapeFillMode === 'outline_and_fill' ? 'active' : ''}`}
                         title='Outline & Fill'
+                        aria-label='Outline and fill mode'
+                        aria-pressed={shapeFillMode === 'outline_and_fill'}
                         onClick={() => dispatch(setShapeFillMode('outline_and_fill'))}
                     >
                         <Circle size={20} fill='currentColor' strokeWidth={1.5} />
@@ -111,7 +127,8 @@ const RibbonToolbar = () => {
                         min='1'
                         max='100'
                         value={lineWidth}
-                        onChange={e => dispatch(setLineWidth(parseInt(e.target.value)))}
+                        aria-label='Brush and shape thickness'
+                        onChange={e => dispatch(setLineWidth(parseInt(e.target.value, 10)))}
                     />
                     <span className='thickness-label'>{lineWidth}px</span>
                 </div>

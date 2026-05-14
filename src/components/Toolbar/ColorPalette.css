@@ -56,3 +56,9 @@
 .color-swatch:hover {
     border-color: #fff;
 }
+
+.color-swatch:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+    border-color: #fff;
+}

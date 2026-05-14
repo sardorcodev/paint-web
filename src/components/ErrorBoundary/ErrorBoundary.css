@@ -1,0 +1,22 @@
+.error-boundary-fallback {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    background-color: #2c2c2c;
+    color: #f0f0f0;
+    text-align: center;
+}
+
+.error-boundary-fallback h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.error-boundary-fallback p {
+    margin: 0;
+    color: #c8c8c8;
+}
